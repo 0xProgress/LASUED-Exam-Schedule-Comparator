@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: lasued-proxy
+    runtime: python
+    buildCommand: ""
+    startCommand: python proxy.py

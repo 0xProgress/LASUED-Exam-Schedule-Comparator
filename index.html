@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LASUED Exam Schedule Comparator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blue-50: #eff6ff;
+            --blue-100: #dbeafe;
+            --blue-200: #bfdbfe;
+            --blue-300: #93c5fd;
+            --blue-400: #60a5fa;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            --blue-800: #1e40af;
+            --blue-900: #1e3a8a;
+
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --neutral: #64748b;
+            --neutral-bg: #f1f5f9;
+
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Lato', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container { max-width:780px; width:100%; }
+
+        .header { text-align:center; margin-bottom:32px; }
+        .header .brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.25rem; font-weight:800;
+            color: var(--blue-800);
+            letter-spacing: -0.5px; line-height:1.1;
+        }
+        .header .brand span { color: var(--blue-500); }
+        .header .subtitle { color: var(--text-secondary); font-size:0.9rem; margin-top:4px; }
+
+        .card {
+            background: var(--surface);
+            border:1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom:20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            font-family: 'Playfair Display', serif;
+            font-size:1.15rem; font-weight:700;
+            color: var(--blue-800);
+            margin-bottom:20px;
+            display:flex; align-items:center; gap:10px;
+        }
+        .card-header svg { flex-shrink:0; }
+
+        .input-row { display:flex; gap:14px; flex-wrap:wrap; }
+        .input-field { flex:1; min-width:220px; }
+        .input-field label {
+            display:block; font-size:0.8rem; font-weight:700;
+            color: var(--text-secondary);
+            text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;
+        }
+        .input-field input {
+            width:100%; padding:13px 16px;
+            background: var(--bg);
+            border:1.5px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size:0.95rem;
+            transition: all 0.2s ease;
+            letter-spacing:0.5px;
+        }
+        .input-field input:focus {
+            outline:none; border-color:var(--blue-400);
+            box-shadow:0 0 0 4px var(--blue-100); background:#fff;
+        }
+        .input-field input::placeholder { color:#cbd5e1; font-family:'Lato',sans-serif; letter-spacing:0; }
+
+        .btn {
+            width:100%; padding:15px; border:none;
+            border-radius: var(--radius);
+            font-family: 'Lato', sans-serif;
+            font-size:1rem; font-weight:700; cursor:pointer;
+            transition: all 0.25s ease;
+            margin-top:18px;
+            background: var(--blue-700);
+            color:#fff; letter-spacing:0.3px;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+        }
+        .btn:hover { background:var(--blue-600); transform:translateY(-1px); box-shadow:0 8px 24px rgba(37,99,235,0.2); }
+        .btn:active { transform:translateY(0); box-shadow:none; }
+        .btn:disabled { opacity:0.55; cursor:not-allowed; transform:none; box-shadow:none; }
+
+        .loader { display:none; text-align:center; padding:40px 20px; }
+        .loader.active { display:block; }
+        .loader-spinner {
+            width:44px; height:44px;
+            border:4px solid var(--border); border-top-color:var(--blue-500);
+            border-radius:50%;
+            animation: spin 0.75s linear infinite;
+            margin:0 auto 16px;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .loader p { color:var(--text-secondary); font-size:0.9rem; font-weight:500; }
+
+        .results { display:none; }
+        .results.active { display:block; }
+
+        .student-pills { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        .student-pill {
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:100px; padding:8px 18px;
+            font-weight:600; font-size:0.85rem;
+            display:flex; align-items:center; gap:8px;
+            box-shadow:var(--shadow);
+        }
+        .student-pill .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .dot-a { background:var(--blue-500); }
+        .dot-b { background:var(--blue-300); }
+
+        .summary-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:24px; }
+        .summary-box {
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius); padding:18px 14px;
+            text-align:center; box-shadow:var(--shadow);
+        }
+        .summary-box .icon-wrap { margin-bottom:8px; }
+        .summary-box .count { font-family:'Space Mono', monospace; font-size:2rem; font-weight:700; }
+        .count-green { color:var(--success); }
+        .count-amber { color:var(--warning); }
+        .count-red { color:var(--danger); }
+        .count-gray { color:var(--neutral); }
+        .summary-box .label { font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px; line-height:1.3; }
+
+        .result-list-title { font-family:'Playfair Display', serif; font-size:1rem; font-weight:700; color:var(--blue-800); margin-bottom:12px; }
+
+        .result-item {
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius); padding:16px 18px;
+            margin-bottom:8px; display:flex; align-items:flex-start; gap:14px;
+            box-shadow:var(--shadow); transition:box-shadow 0.2s;
+        }
+        .result-item:hover { box-shadow:var(--shadow-md); }
+        .result-icon { flex-shrink:0; margin-top:2px; }
+        .result-body { flex:1; min-width:0; }
+        .result-course { font-weight:700; font-size:0.9rem; color:var(--text); }
+        .result-detail { font-size:0.8rem; color:var(--text-secondary); margin-top:3px; line-height:1.4; }
+        .result-meta { font-family:'Space Mono', monospace; font-size:0.72rem; color:var(--text-secondary); margin-top:4px; letter-spacing:0.3px; }
+        .tag { display:inline-block; padding:3px 10px; border-radius:100px; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; }
+        .tag-same { background:var(--success-bg); color:#15803d; }
+        .tag-hall { background:var(--warning-bg); color:#b45309; }
+        .tag-diff { background:var(--danger-bg); color:#b91c1c; }
+        .tag-none { background:var(--neutral-bg); color:#475569; }
+
+        .error-msg { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:13px 18px; border-radius:var(--radius); margin-top:14px; display:none; font-size:0.88rem; font-weight:500; }
+        .error-msg.active { display:block; }
+
+        .footer { text-align:center; color:var(--text-secondary); font-size:0.7rem; margin-top:32px; padding-bottom:20px; letter-spacing:0.3px; }
+
+        @media (max-width:500px) {
+            .header .brand { font-size:1.6rem; }
+            .card { padding:18px; }
+            .input-row { flex-direction:column; gap:12px; }
+            .summary-row { grid-template-columns:repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">LASU<span>ED</span></div>
+            <p class="subtitle">Exam Schedule Comparator — Check hall &amp; time overlap with a classmate</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/>
+                </svg>
+                Enter Matric Numbers
+            </div>
+            <div class="input-row">
+                <div class="input-field">
+                    <label>First Student</label>
+                    <input type="text" id="matric1" placeholder="e.g. 25120102225" autocomplete="off">
+                </div>
+                <div class="input-field">
+                    <label>Second Student</label>
+                    <input type="text" id="matric2" placeholder="e.g. 25120102226" autocomplete="off">
+                </div>
+            </div>
+            <button class="btn" id="checkBtn" onclick="compare()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Compare Schedules
+            </button>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="loader-spinner"></div>
+            <p>Fetching exam schedules from docket&hellip;</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="student-pills" id="studentPills"></div>
+            <div class="summary-row" id="summary"></div>
+            <div class="result-list-title" id="resultTitle" style="display:none;">Exam-by-Exam Breakdown</div>
+            <div id="resultList"></div>
+        </div>
+
+        <div class="footer">Data sourced from LASUED Exam Docket &bull; For educational purposes</div>
+    </div>
+
+    <script>
+        // const API = 'http://localhost:8765';
+        // const API = 'https://your-proxy.onrender.com'; // Change this if you deploy on Render
+
+        const ICONS = {
+            same: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+            hall: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="15" x2="16" y2="15"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+            diff: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+            none: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+            sumSame: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+            sumHall: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
+            sumDiff: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>`,
+            sumNone: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+        };
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('active');
+        }
+        function hideError() { document.getElementById('errorMsg').classList.remove('active'); }
+
+        function setLoading(s) {
+            const loader = document.getElementById('loader');
+            const btn = document.getElementById('checkBtn');
+            const results = document.getElementById('results');
+            if (s) {
+                loader.classList.add('active');
+                btn.disabled = true;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Loading...`;
+                results.classList.remove('active');
+                hideError();
+            } else {
+                loader.classList.remove('active');
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Compare Schedules`;
+            }
+        }
+
+        async function apiCall(endpoint, body) {
+            const fd = new URLSearchParams(body);
+            const res = await fetch(`${API}/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: fd.toString()
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }
+
+        async function getStudent(matric) {
+            const v = await apiCall('validate_matric.php', { matric });
+            if (!v.success) throw new Error(`Invalid matric: ${matric}`);
+            const sid = v.student_id;
+            const name = v.fullname;
+            const sched = await apiCall('get_courses_by_day.php', { student_id: sid });
+            if (!sched.success) throw new Error(`Could not load schedule for ${matric}`);
+            const map = {};
+            for (const s of sched.courses) {
+                map[s.code] = { date: s.date, day: s.day, start_time: s.start_time, end_time: s.end_time };
+            }
+            const courses = [];
+            for (const [code, info] of Object.entries(map)) {
+                try {
+                    const login = await apiCall('login.php', { student_id: sid, matric, course_code: code });
+                    if (login.success && login.student) {
+                        courses.push({
+                            code,
+                            title: login.student.course_title,
+                            date: info.date,
+                            day: info.day,
+                            time: login.student.time,
+                            venue: login.student.venue,
+                            batch: login.student.batch,
+                            campus: login.student.campus
+                        });
+                    }
+                } catch (e) {}
+            }
+            return { matric, name, courses };
+        }
+
+        async function compare() {
+            const m1 = document.getElementById('matric1').value.trim();
+            const m2 = document.getElementById('matric2').value.trim();
+            if (!m1 || !m2) { showError('Please enter both matric numbers.'); return; }
+
+            setLoading(true);
+            try {
+                const [d1, d2] = await Promise.all([getStudent(m1), getStudent(m2)]);
+                const p2Map = {};
+                for (const c of d2.courses) p2Map[c.code] = c;
+
+                const items = [];
+                let sameCount = 0, hallCount = 0, diffCount = 0, noneCount = 0;
+
+                for (const c1 of d1.courses) {
+                    const c2 = p2Map[c1.code];
+                    if (!c2) {
+                        noneCount++;
+                        items.push({ course: `${c1.code} — ${c1.title}`, type: 'none', detail: `${d2.name} does not have this course`, meta: `${c1.day}, ${c1.date}`, day: c1.date });
+                        continue;
+                    }
+                    delete p2Map[c1.code];
+                    const sameTime = c1.time === c2.time;
+                    const sameVenue = c1.venue === c2.venue;
+                    if (sameVenue && sameTime) {
+                        sameCount++;
+                        items.push({ course: `${c1.code} — ${c1.title}`, type: 'same', detail: `${c1.venue} &bull; ${c1.time} &bull; Batch ${c1.batch}`, meta: `${c1.day}, ${c1.date}`, day: c1.date });
+                    } else if (sameVenue && !sameTime) {
+                        hallCount++;
+                        items.push({ course: `${c1.code} — ${c1.title}`, type: 'hall', detail: `${c1.venue} &bull; ${d1.name.split(' ')[0]}: ${c1.time} | ${d2.name.split(' ')[0]}: ${c2.time}`, meta: `${c1.day}, ${c1.date}`, day: c1.date });
+                    } else {
+                        diffCount++;
+                        items.push({ course: `${c1.code} — ${c1.title}`, type: 'diff', detail: `${d1.name.split(' ')[0]}: ${c1.venue} | ${d2.name.split(' ')[0]}: ${c2.venue}`, meta: `${c1.day}, ${c1.date}`, day: c1.date });
+                    }
+                }
+                for (const [code, c2] of Object.entries(p2Map)) {
+                    noneCount++;
+                    items.push({ course: `${code} — ${c2.title}`, type: 'none', detail: `${d1.name} does not have this course`, meta: `${c2.day}, ${c2.date}`, day: c2.date });
+                }
+
+                items.sort((a, b) => a.day.localeCompare(b.day));
+
+                document.getElementById('studentPills').innerHTML = `
+                    <div class="student-pill"><span class="dot dot-a"></span> ${d1.name} (${d1.matric})</div>
+                    <div class="student-pill"><span class="dot dot-b"></span> ${d2.name} (${d2.matric})</div>
+                `;
+
+                document.getElementById('summary').innerHTML = `
+                    <div class="summary-box"><div class="icon-wrap">${ICONS.sumSame}</div><div class="count count-green">${sameCount}</div><div class="label">Same Hall<br>&amp; Time</div></div>
+                    <div class="summary-box"><div class="icon-wrap">${ICONS.sumHall}</div><div class="count count-amber">${hallCount}</div><div class="label">Same Hall<br>Diff Time</div></div>
+                    <div class="summary-box"><div class="icon-wrap">${ICONS.sumDiff}</div><div class="count count-red">${diffCount}</div><div class="label">Different<br>Halls</div></div>
+                    <div class="summary-box"><div class="icon-wrap">${ICONS.sumNone}</div><div class="count count-gray">${noneCount}</div><div class="label">Not<br>Shared</div></div>
+                `;
+
+                document.getElementById('resultTitle').style.display = items.length ? 'block' : 'none';
+                document.getElementById('resultList').innerHTML = items.map(i => {
+                    const tagMap = {
+                        same: { cls: 'tag-same', txt: 'Same Hall & Time' },
+                        hall: { cls: 'tag-hall', txt: 'Same Hall, Diff Time' },
+                        diff: { cls: 'tag-diff', txt: 'Different Halls' },
+                        none: { cls: 'tag-none', txt: 'Not Shared' }
+                    };
+                    const t = tagMap[i.type];
+                    return `<div class="result-item">
+                        <div class="result-icon">${ICONS[i.type]}</div>
+                        <div class="result-body">
+                            <div class="result-course">${i.course}</div>
+                            <div class="result-detail">${i.detail}</div>
+                            <div class="result-meta">${i.meta}</div>
+                            <span class="tag ${t.cls}">${t.txt}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('results').classList.add('active');
+            } catch (e) {
+                showError(e.message || 'Something went wrong. Check matric numbers and ensure proxy is running.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') compare();
+        });
+    </script>
+</body>
+</html>
